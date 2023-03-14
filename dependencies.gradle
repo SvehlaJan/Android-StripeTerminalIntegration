@@ -1,0 +1,36 @@
+ext.versions = [
+        minSdk                        : 21,
+        compileSdk                    : 33,
+        versionCode                   : 1,
+        versionName                   : '1.0.0',
+
+        gradleBuildTool               : '8.0.0-beta03',
+        kotlin                        : '1.7.20',
+        coreKtxVersion                : '1.9.0',
+        kotlinXSerializationVersion   : '1.4.1',
+
+        // compose
+        composeBomVersion             : '2023.01.00',
+        composeActivityVersion        : '1.6.1',
+        kotlinCompilerExtensionVersion: '1.3.2',
+
+        // stripe
+        stripeTerminalVersion         : '2.17.1',
+
+        // network
+        retrofitVersion               : '2.9.0',
+        stethoVersion                 : '1.5.1',
+
+        // architecture components
+        lifecycleVersion              : '2.6.0-alpha04',
+
+        // debugging
+        timberVersion                 : '5.0.1',
+
+        // unit test
+        junitJupiterVersion           : '5.9.2',
+        mockkVersion                  : '1.13.3',
+        truthVersion                  : '1.1.3',
+        turbineVersion                : '0.12.1',
+        coroutinesTestVersion         : '1.6.4',
+]

@@ -1,0 +1,42 @@
+<resources>
+    <string name="app_name">SvehlaVentrataAndroid</string>
+
+    <string name="button_ok">OK</string>
+    <string name="button_discover_readers">Discover readers</string>
+    <string name="button_start_payment">Start payment</string>
+
+    <string name="payment_preparing">Preparing payment…</string>
+    <string name="payment_in_progress">Payment in progress…</string>
+    <string name="payment_success">Payment successful</string>
+
+    <string name="error_general_title">Error</string>
+    <string name="error_api_title">Error communicating with API</string>
+    <string name="error_terminal_title">Error communicating with Terminal</string>
+    <string name="error_general_message">An error occurred</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_network">Network error</string>
+    <string name="error_not_found">Not found</string>
+    <string name="error_unauthorized">The username or password does not match</string>
+    <string name="error_access_denied">Access denied</string>
+    <string name="error_service_unavailable">Service unavailable</string>
+    <string name="error_bad_request">Bad request</string>
+    <string name="error_internal_server">Internal server error</string>
+    <string name="error_parse_response">Error parsing a response</string>
+
+    <string name="error_amount_empty">Amount cannot be empty</string>
+    <string name="error_amount_invalid">Amount is invalid</string>
+    <string name="error_amount_too_big">Amount is too big</string>
+    <string name="error_amount_too_small">Amount is too small</string>
+    <string name="error_amount_too_many_decimals">Amount has too many decimals</string>
+    <string name="error_amount_too_few_decimals">Amount has too few decimals</string>
+
+    <string name="error_currency_empty">Currency cannot be empty</string>
+    <string name="error_currency_invalid">Currency is invalid</string>
+
+    <string name="error_reference_empty">Reference cannot be empty</string>
+    <string name="error_reference_invalid">Reference is invalid</string>
+    <string name="alert_location_disabled_message">GPS is disabled in your device. Would you like to enable it?</string>
+    <string name="alert_location_disabled_action">Open Settings</string>
+    <string name="label_reference_number">Reference number</string>
+    <string name="label_amount">Amount</string>
+</resources>

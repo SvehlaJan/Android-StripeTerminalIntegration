@@ -1,0 +1,84 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'de.mannodermaus.android-junit5' version '1.8.2.1'
+}
+
+apply from: '../dependencies.gradle'
+
+android {
+    namespace 'tech.svehla.demo'
+    compileSdk versions.compileSdk
+
+    defaultConfig {
+        applicationId "tech.svehla.demo"
+        minSdk versions.minSdk
+        targetSdk versions.compileSdk
+        versionCode versions.versionCode
+        versionName versions.versionName
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+        freeCompilerArgs += '-Xopt-in=kotlin.RequiresOptIn'
+        freeCompilerArgs += '-Xopt-in=kotlinx.coroutines.ExperimentalCoroutinesApi'
+    }
+    buildFeatures {
+        compose true
+        buildConfig = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion "$versions.kotlinCompilerExtensionVersion"
+    }
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+}
+
+dependencies {
+    implementation "androidx.core:core-ktx:$versions.coreKtxVersion"
+
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$versions.lifecycleVersion"
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:$versions.lifecycleVersion"
+    implementation "androidx.activity:activity-compose:$versions.composeActivityVersion"
+
+    implementation platform("androidx.compose:compose-bom:$versions.composeBomVersion")
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material:material'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+
+    implementation "com.stripe:stripeterminal:$versions.stripeTerminalVersion"
+    implementation "com.squareup.retrofit2:retrofit:$versions.retrofitVersion"
+    implementation "com.squareup.retrofit2:converter-gson:$versions.retrofitVersion"
+    implementation "com.facebook.stetho:stetho-okhttp3:$versions.stethoVersion"
+
+    implementation "com.jakewharton.timber:timber:$versions.timberVersion"
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$versions.junitJupiterVersion"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$versions.junitJupiterVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:$versions.junitJupiterVersion"
+    testImplementation "io.mockk:mockk:$versions.mockkVersion"
+    testImplementation "app.cash.turbine:turbine:$versions.turbineVersion"
+    testImplementation "com.google.truth:truth:$versions.truthVersion"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$versions.coroutinesTestVersion"
+}
