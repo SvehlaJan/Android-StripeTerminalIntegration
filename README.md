@@ -12,8 +12,6 @@ UI is done with Jetpack Compose.
 
 Parts of Stripe Android SDK are wrapped in coroutines and Flows.
 
-A few unit tests are included.
-
 ## How to run
 
 Android app should compile without any additional steps.

@@ -2,7 +2,6 @@ package tech.svehla.demo.domain.useCase
 
 import com.stripe.stripeterminal.external.models.ConnectionConfiguration
 import com.stripe.stripeterminal.external.models.Reader
-import com.stripe.stripeterminal.external.models.TerminalException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tech.svehla.demo.api.ErrorMapper
@@ -19,7 +18,7 @@ class ConnectToReaderUseCase(
 
         try {
             terminalClient.connectToReader(reader, connectionConfig)
-        } catch (e: TerminalException) {
+        } catch (e: Exception) {
             Timber.e(e, "Error connecting to reader")
             throw ConnectToReaderException(errorMapper.mapException(e))
         }
