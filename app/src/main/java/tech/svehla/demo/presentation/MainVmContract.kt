@@ -13,7 +13,7 @@ object MainVmContract {
 
         val paymentReady: Boolean = false,
 
-        val readers: List<ReaderVO>? = null,
+        val readerVOs: List<ReaderVO>? = null,
         val amount: String = "",
         @StringRes val amountErrorId: Int? = null,
         val referenceNumber: String = "",
@@ -30,9 +30,9 @@ object MainVmContract {
     sealed class UiAction {
         object OnErrorConsumed : UiAction()
         object OnDiscoverReadersRequested : UiAction()
-        object OnStartPaymentRequested : UiAction()
+        object OnPaymentRequested : UiAction()
         data class OnAmountChanged(val amount: String) : UiAction()
         data class OnReferenceNumberChanged(val referenceNumber: String) : UiAction()
-        data class OnReaderSelected(val reader: ReaderVO) : UiAction()
+        data class OnReaderSelected(val serialNumber: String) : UiAction()
     }
 }

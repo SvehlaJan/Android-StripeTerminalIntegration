@@ -11,7 +11,7 @@ class TokenProvider : ConnectionTokenProvider {
 
     override fun fetchConnectionToken(callback: ConnectionTokenCallback) {
         try {
-            val token = ApiClient.createConnectionToken()
+            val token = ApiClient.getInstance().createConnectionToken()
             callback.onSuccess(token)
         } catch (e: ConnectionTokenException) {
             Timber.e(e, "Failed to fetch connection token")

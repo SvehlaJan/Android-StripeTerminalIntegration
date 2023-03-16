@@ -6,7 +6,7 @@ import tech.svehla.demo.domain.model.ErrorReason
 import tech.svehla.demo.domain.model.PaymentProgress
 
 fun Reader.toVO() = ReaderVO(
-    serialNumber = serialNumber,
+    serialNumber = serialNumber!!,
     label = label,
     ipAddress = ipAddress,
 )

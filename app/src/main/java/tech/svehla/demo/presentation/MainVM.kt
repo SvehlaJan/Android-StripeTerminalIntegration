@@ -3,16 +3,14 @@ package tech.svehla.demo.presentation
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.stripe.stripeterminal.Terminal
 import com.stripe.stripeterminal.external.models.Reader
-import com.stripe.stripeterminal.external.models.TerminalException
-import com.stripe.stripeterminal.log.LogLevel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import tech.svehla.demo.data.TerminalEventListener
-import tech.svehla.demo.data.TokenProvider
+import tech.svehla.demo.api.ErrorMapper
+import tech.svehla.demo.data.ApiClient
+import tech.svehla.demo.data.TerminalClient
 import tech.svehla.demo.domain.model.ErrorReason
 import tech.svehla.demo.domain.model.PaymentProgress
 import tech.svehla.demo.domain.useCase.ConnectToReaderException
@@ -21,35 +19,41 @@ import tech.svehla.demo.domain.useCase.DiscoverReadersException
 import tech.svehla.demo.domain.useCase.DiscoverReadersUseCase
 import tech.svehla.demo.domain.useCase.TerminalPaymentException
 import tech.svehla.demo.domain.useCase.TerminalPaymentUseCase
-import tech.svehla.demo.presentation.model.ReaderVO
 import tech.svehla.demo.presentation.model.toErrorVO
 import tech.svehla.demo.presentation.model.toVO
 import timber.log.Timber
 
+// TODO - replace with DI
 class MainVM(
     private val inputValidator: Validator = Validator(),
-    private val terminalPaymentUseCase: TerminalPaymentUseCase = TerminalPaymentUseCase(),
-    private val connectToReaderUseCase: ConnectToReaderUseCase = ConnectToReaderUseCase(),
-    private val discoverReadersUseCase: DiscoverReadersUseCase = DiscoverReadersUseCase(),
+    private val terminalClient: TerminalClient = TerminalClient(),
+    private val apiClient: ApiClient = ApiClient.getInstance(),
+    private val errorMapper: ErrorMapper = ErrorMapper(),
+    private val terminalPaymentUseCase: TerminalPaymentUseCase = TerminalPaymentUseCase(terminalClient, apiClient, errorMapper),
+    private val connectToReaderUseCase: ConnectToReaderUseCase = ConnectToReaderUseCase(terminalClient, errorMapper),
+    private val discoverReadersUseCase: DiscoverReadersUseCase = DiscoverReadersUseCase(terminalClient, errorMapper),
 ) : ViewModel() {
 
     private val _uiState: MutableStateFlow<MainVmContract.UiState> = MutableStateFlow(MainVmContract.UiState())
     val uiState: MutableStateFlow<MainVmContract.UiState> = _uiState
 
-    var availableReaders: List<Reader> = emptyList()
+    private var availableReaders: List<Reader> = emptyList()
 
     fun initializeStripeSDK(applicationContext: Context) {
         try {
-            Terminal.initTerminal(applicationContext, LogLevel.VERBOSE, TokenProvider(), TerminalEventListener())
-        } catch (e: TerminalException) {
-            throw RuntimeException(
-                "Location services are required in order to initialize the Terminal.", e
-            )
+            terminalClient.initTerminal(applicationContext, onTerminalDisconnected = {
+                updateReaderConnection(false)
+            })
+        } catch (e: Exception) {
+            Timber.e("Error while initializing Stripe SDK: $e")
+            _uiState.update { it.copy(errorVO = errorMapper.mapException(e).toErrorVO()) }
         }
 
-        val isConnectedToReader = Terminal.getInstance().connectedReader != null
+        val isConnectedToReader = terminalClient.getConnectedReader() != null
         updateReaderConnection(isConnectedToReader)
     }
+
+    fun isStripeSDKInitialized() = terminalClient.isInitialized()
 
     fun onEventConsumed(event: MainVmContract.UiEvent) {
         _uiState.update { it.copy(events = _uiState.value.events.filter { e -> e.id != event.id }) }
@@ -65,7 +69,11 @@ class MainVM(
                 discoverReaders()
             }
 
-            is MainVmContract.UiAction.OnStartPaymentRequested -> {
+            is MainVmContract.UiAction.OnReaderSelected -> {
+                connectToReader(action.serialNumber)
+            }
+
+            is MainVmContract.UiAction.OnPaymentRequested -> {
                 val amountErrorId = inputValidator.validateAmount(_uiState.value.amount)
                 val referenceNumberErrorId = inputValidator.validateReferenceNumber(_uiState.value.referenceNumber)
                 if (amountErrorId != null || referenceNumberErrorId != null) {
@@ -79,10 +87,6 @@ class MainVM(
                 }
 
                 startPayment()
-            }
-
-            is MainVmContract.UiAction.OnReaderSelected -> {
-                connectToReader(action.reader)
             }
 
             is MainVmContract.UiAction.OnAmountChanged -> {
@@ -116,18 +120,18 @@ class MainVM(
         }
     }
 
-    private fun connectToReader(readerVO: ReaderVO) = viewModelScope.launch {
+    private fun connectToReader(serialNumber: String) = viewModelScope.launch {
         _uiState.update { it.copy(isLoading = true) }
 
-        val reader = availableReaders.firstOrNull() { it.serialNumber == readerVO.serialNumber }
+        val reader = availableReaders.firstOrNull() { it.serialNumber == serialNumber }
         if (reader == null) {
             Timber.e("Reader not found")
             return@launch
         }
 
         try {
-            val isConnected = connectToReaderUseCase(reader)
-            updateReaderConnection(isConnected)
+            connectToReaderUseCase(reader)
+            updateReaderConnection(true)
         } catch (e: Exception) {
             Timber.e(e, "Failed to connect to reader")
             if (e is ConnectToReaderException) {
@@ -157,7 +161,7 @@ class MainVM(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        readers = discoveredReaders.map { reader -> reader.toVO() }
+                        readerVOs = discoveredReaders.map { reader -> reader.toVO() }
                     )
                 }
             }

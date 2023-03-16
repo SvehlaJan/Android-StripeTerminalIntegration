@@ -59,11 +59,11 @@ fun MainScreen(
                 showPaymentSuccess = uiState.showPaymentSuccess,
                 onAmountChanged = { onUiAction(MainVmContract.UiAction.OnAmountChanged(it)) },
                 onReferenceNumberChanged = { onUiAction(MainVmContract.UiAction.OnReferenceNumberChanged(it)) },
-                onStartPayment = { onUiAction(MainVmContract.UiAction.OnStartPaymentRequested) },
+                onStartPayment = { onUiAction(MainVmContract.UiAction.OnPaymentRequested) },
             )
         } else {
             DiscoveryContent(
-                readers = uiState.readers ?: emptyList(),
+                readers = uiState.readerVOs ?: emptyList(),
                 onDiscoverReaders = { onUiAction(MainVmContract.UiAction.OnDiscoverReadersRequested) },
                 onReaderSelected = { onUiAction(MainVmContract.UiAction.OnReaderSelected(it)) },
             )
@@ -156,7 +156,7 @@ private fun PaymentContent(
 private fun DiscoveryContent(
     modifier: Modifier = Modifier,
     readers: List<ReaderVO> = emptyList(),
-    onReaderSelected: (ReaderVO) -> Unit = {},
+    onReaderSelected: (String) -> Unit = {},
     onDiscoverReaders: () -> Unit = {},
 ) {
     Column(
@@ -182,7 +182,7 @@ private fun DiscoveryContent(
                             .fillMaxWidth()
                             .padding(8.dp),
                         reader = reader,
-                        onClick = { onReaderSelected(reader) },
+                        onClick = { onReaderSelected(reader.serialNumber) },
                     )
                 }
             }
@@ -207,12 +207,10 @@ private fun ReaderTile(
                 text = reader.label ?: "Unknown reader",
                 style = MaterialTheme.typography.h6,
             )
-            reader.serialNumber?.let { serialNumber ->
-                Text(
-                    text = "Serial no.: $serialNumber",
-                    style = MaterialTheme.typography.body2,
-                )
-            }
+            Text(
+                text = "Serial no.: $reader.serialNumber",
+                style = MaterialTheme.typography.body2,
+            )
             reader.ipAddress?.let { ipAddress ->
                 Text(
                     text = "IP address: $ipAddress",
@@ -228,7 +226,7 @@ private fun ReaderTile(
 fun MainScreenPreview() {
     MainScreen(
         uiState = MainVmContract.UiState(
-            readers = listOf(
+            readerVOs = listOf(
                 ReaderVO(
                     serialNumber = "123456789",
                     label = "Reader 1",

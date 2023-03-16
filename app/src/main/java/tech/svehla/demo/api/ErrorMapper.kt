@@ -3,13 +3,14 @@ package tech.svehla.demo.api
 import com.stripe.stripeterminal.external.models.TerminalException
 import tech.svehla.demo.domain.model.ErrorReason
 
-object ErrorMapper {
+class ErrorMapper {
     fun mapException(throwable: Throwable): ErrorReason {
         return when (throwable) {
             is TerminalException -> {
                 val errorCode = throwable.errorCode // TODO - more granular error handling
                 ErrorReason.TerminalError(throwable.errorMessage)
             }
+
             is retrofit2.HttpException -> {
                 val errorBody = throwable.response()?.errorBody()?.string()
                 when (throwable.code()) {

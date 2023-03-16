@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SvehlaVentrataAndroid</string>
+    <string name="app_name">Stripe Terminal Integration</string>
 
     <string name="button_ok">OK</string>
     <string name="button_discover_readers">Discover readers</string>
@@ -39,4 +39,7 @@
     <string name="alert_location_disabled_action">Open Settings</string>
     <string name="label_reference_number">Reference number</string>
     <string name="label_amount">Amount</string>
+    <string name="alert_permissions_denied_message">Application requires system permissions to operate. Please, enable them.</string>
+    <string name="alert_permissions_denied_action">Open settings</string>
+    <string name="alert_permissions_denied_cancel">Exit app</string>
 </resources>
