@@ -22,14 +22,14 @@ class Validator {
             R.string.error_reference_empty
         } else if (referenceNumber.length > 20) {
             R.string.error_reference_invalid
+        } else if (referenceNumber.indexOfFirst { !it.isDigit() } != -1) {
+            R.string.error_reference_invalid
         } else {
             null
         }
     }
 
     fun convertAmount(amount: String): Int {
-        val integerPart = amount.substringBefore(".").toInt()
-        val decimalPart: Float = amount.toFloat() - integerPart
-        return integerPart * 100 + (decimalPart * 100).toInt()
+        return (amount.toDouble() * 100).toInt()
     }
 }
