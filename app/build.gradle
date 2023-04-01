@@ -70,7 +70,7 @@ dependencies {
     implementation "com.stripe:stripeterminal:$versions.stripeTerminalVersion"
     implementation "com.squareup.retrofit2:retrofit:$versions.retrofitVersion"
     implementation "com.squareup.retrofit2:converter-gson:$versions.retrofitVersion"
-    implementation "com.facebook.stetho:stetho-okhttp3:$versions.stethoVersion"
+    implementation "com.squareup.okhttp3:logging-interceptor:$versions.okhttpVersion"
 
     implementation "com.jakewharton.timber:timber:$versions.timberVersion"
 

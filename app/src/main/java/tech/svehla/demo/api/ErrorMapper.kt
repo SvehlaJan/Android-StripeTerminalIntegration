@@ -1,5 +1,6 @@
 package tech.svehla.demo.api
 
+import com.stripe.stripeterminal.external.models.ConnectionTokenException
 import com.stripe.stripeterminal.external.models.TerminalException
 import tech.svehla.demo.domain.model.ErrorReason
 
@@ -9,6 +10,9 @@ class ErrorMapper {
             is TerminalException -> {
                 val errorCode = throwable.errorCode // TODO - more granular error handling
                 ErrorReason.TerminalError(throwable.errorMessage)
+            }
+            is ConnectionTokenException -> {
+                ErrorReason.ApiError(throwable.message)
             }
 
             is retrofit2.HttpException -> {

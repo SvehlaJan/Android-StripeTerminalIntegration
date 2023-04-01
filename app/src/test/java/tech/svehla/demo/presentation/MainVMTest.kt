@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import tech.svehla.demo.R
 import tech.svehla.demo.api.ErrorMapper
 import tech.svehla.demo.data.ApiClient
 import tech.svehla.demo.data.TerminalClient
@@ -29,10 +30,10 @@ import tech.svehla.demo.domain.model.PaymentProgress
 import tech.svehla.demo.domain.useCase.ConnectToReaderUseCase
 import tech.svehla.demo.domain.useCase.DiscoverReadersUseCase
 import tech.svehla.demo.domain.useCase.TerminalPaymentUseCase
+import tech.svehla.demo.domain.useCase.TerminalUseCase
 import tech.svehla.demo.presentation.model.toErrorVO
 import tech.svehla.demo.presentation.model.toVO
 import tech.svehla.demo.testUtil.MainCoroutineExtension
-import tech.svehla.demo.R
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @ExtendWith(MainCoroutineExtension::class)
@@ -51,6 +52,9 @@ class MainVMTest {
     private lateinit var errorMapper: ErrorMapper
 
     @MockK
+    private lateinit var terminalUseCase: TerminalUseCase
+
+    @MockK
     private lateinit var terminalPaymentUseCase: TerminalPaymentUseCase
 
     @MockK
@@ -66,55 +70,46 @@ class MainVMTest {
     fun setUp() {
         MockKAnnotations.init(this)
 
+        every { terminalUseCase.observeConnectedReader() } returns mockk()
+        every { terminalUseCase.observeConnectionStatus() } returns mockk()
+        every { terminalUseCase.observePaymentStatus() } returns mockk()
+
         viewModel = MainVM(
-            validator,
-            terminalClient,
-            apiClient,
-            errorMapper,
-            terminalPaymentUseCase,
-            connectToReaderUseCase,
-            discoverReadersUseCase,
+            inputValidator = validator,
+            errorMapper = errorMapper,
+            terminalClient = terminalClient,
+            apiClient = apiClient,
+            terminalUseCase = terminalUseCase,
+            terminalPaymentUseCase = terminalPaymentUseCase,
+            connectToReaderUseCase = connectToReaderUseCase,
+            discoverReadersUseCase = discoverReadersUseCase,
         )
     }
 
     @Test
-    fun `initializeStripeSDK() should init SDK and update reader connection state`() {
-        every { terminalClient.initTerminal(any(), any()) } returns Unit
-        every { terminalClient.getConnectedReader() } returns null
+    fun `initializeStripeSDK() should init SDK and update reader connection state`() = runTest {
+        coEvery { terminalUseCase.initTerminal(any()) } returns Unit
         val context = mockk<Context>()
 
         viewModel.initializeStripeSDK(context)
+        advanceUntilIdle()
 
-        verify { terminalClient.initTerminal(context, any()) }
-        verify { terminalClient.getConnectedReader() }
-        with(viewModel.uiState.value) {
-            Truth.assertThat(paymentReady).isFalse()
-            Truth.assertThat(isLoading).isFalse()
-        }
+        coVerify { terminalUseCase.initTerminal(context) }
     }
 
     @Test
-    fun `initializeStripeSDK() should set error reason if SDK initialization fails`() {
+    fun `initializeStripeSDK() should set error reason if SDK initialization fails`() = runTest {
         val errorReason = ErrorReason.Unknown()
-        every { terminalClient.initTerminal(any(), any()) } throws Exception()
-        every { terminalClient.getConnectedReader() } returns null
+        coEvery { terminalUseCase.initTerminal(any()) } throws Exception()
         every { errorMapper.mapException(any()) } returns errorReason
         val context = mockk<Context>()
 
         viewModel.initializeStripeSDK(context)
+        advanceUntilIdle()
 
-        verify { terminalClient.initTerminal(context, any()) }
+        coVerify { terminalUseCase.initTerminal(context) }
         verify { errorMapper.mapException(any()) }
         Truth.assertThat(viewModel.uiState.value.errorVO).isEqualTo(errorReason.toErrorVO())
-    }
-
-    @Test
-    fun `isStripeSDKInitialized() should return true if SDK is initialized`() {
-        every { terminalClient.isInitialized() } returns true
-
-        val result = viewModel.isStripeSDKInitialized()
-
-        Truth.assertThat(result).isTrue()
     }
 
     @Test
@@ -169,7 +164,7 @@ class MainVMTest {
     @Test
     fun `On OnConnectToReaderRequested action received should connect to reader and update the UI state`() = runTest {
         val reader = mockk<Reader>(relaxed = true) { every { serialNumber } returns "123" }
-        coEvery { connectToReaderUseCase(any()) } returns Unit
+        coEvery { connectToReaderUseCase.connect(any()) } returns Unit
         every { discoverReadersUseCase.discoverReaders() } returns flow { emit(listOf(reader)) }
         viewModel.onUiAction(MainVmContract.UiAction.OnDiscoverReadersRequested)
         advanceUntilIdle()
@@ -177,18 +172,14 @@ class MainVMTest {
         viewModel.onUiAction(MainVmContract.UiAction.OnReaderSelected("123"))
         advanceUntilIdle()
 
-        coVerify { connectToReaderUseCase(reader) }
-        with(viewModel.uiState.value) {
-            Truth.assertThat(isLoading).isFalse()
-            Truth.assertThat(paymentReady).isTrue()
-        }
+        coVerify { connectToReaderUseCase.connect(reader) }
     }
 
     @Test
     fun `On OnConnectToReaderRequested action handling should set error reason if connection fails`() = runTest {
         val errorReason = ErrorReason.Unknown()
         val reader = mockk<Reader>(relaxed = true) { every { serialNumber } returns "123" }
-        coEvery { connectToReaderUseCase(any()) } throws Exception()
+        coEvery { connectToReaderUseCase.connect(any()) } throws Exception()
         every { discoverReadersUseCase.discoverReaders() } returns flow { emit(listOf(reader)) }
         every { errorMapper.mapException(any()) } returns errorReason
         viewModel.onUiAction(MainVmContract.UiAction.OnDiscoverReadersRequested)
@@ -197,7 +188,7 @@ class MainVMTest {
         viewModel.onUiAction(MainVmContract.UiAction.OnReaderSelected("123"))
         advanceUntilIdle()
 
-        coVerify { connectToReaderUseCase(reader) }
+        coVerify { connectToReaderUseCase.connect(reader) }
         with(viewModel.uiState.value) {
             Truth.assertThat(isLoading).isFalse()
             Truth.assertThat(errorVO).isEqualTo(errorReason.toErrorVO())

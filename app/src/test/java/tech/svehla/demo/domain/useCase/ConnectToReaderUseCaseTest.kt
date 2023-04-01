@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import tech.svehla.demo.api.ErrorMapper
 import tech.svehla.demo.data.TerminalClient
 import tech.svehla.demo.testUtil.MainCoroutineExtension
 
@@ -25,23 +24,20 @@ class ConnectToReaderUseCaseTest {
     @MockK
     private lateinit var terminalClient: TerminalClient
 
-    @MockK
-    private lateinit var errorMapper: ErrorMapper
-
     private lateinit var useCase: ConnectToReaderUseCase
 
     @BeforeEach
     fun setUp() {
         MockKAnnotations.init(this)
 
-        useCase = ConnectToReaderUseCase(terminalClient, errorMapper)
+        useCase = ConnectToReaderUseCase(terminalClient)
     }
 
     @Test
     fun `On invoke should connect to reader`() = runTest {
         coEvery { terminalClient.connectToReader(any(), any()) } just Runs
 
-        useCase(mockk())
+        useCase.connect(mockk())
 
         coVerify { terminalClient.connectToReader(any(), any()) }
     }
@@ -49,16 +45,14 @@ class ConnectToReaderUseCaseTest {
     @Test
     fun `On invoke should wrap exception and rethrow if exception is thrown from terminal client`() = runTest {
         coEvery { terminalClient.connectToReader(any(), any()) } throws Exception()
-        coEvery { errorMapper.mapException(any()) } returns mockk()
 
         val throwable = try {
-            useCase(mockk())
+            useCase.connect(mockk())
             null
         } catch (t: Throwable) {
             t
         }
 
-        coVerify { errorMapper.mapException(any()) }
-        Truth.assertThat(throwable).isInstanceOf(ConnectToReaderException::class.java)
+        Truth.assertThat(throwable).isNotNull()
     }
 }

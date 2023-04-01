@@ -1,19 +1,18 @@
 package tech.svehla.demo.domain.useCase
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import tech.svehla.demo.api.ErrorMapper
 import tech.svehla.demo.data.ApiClient
 import tech.svehla.demo.data.TerminalClient
-import tech.svehla.demo.domain.model.ErrorReason
 import tech.svehla.demo.domain.model.PaymentProgress
 import timber.log.Timber
 
 class TerminalPaymentUseCase(
     private val terminalClient: TerminalClient,
     private val apiClient: ApiClient,
-    private val errorMapper: ErrorMapper,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     suspend fun startPayment(amount: Int, currency: String, referenceNumber: String) = flow {
         try {
@@ -36,9 +35,7 @@ class TerminalPaymentUseCase(
             emit(PaymentProgress.PaymentCompleted)
         } catch (e: Exception) {
             Timber.e(e, "Error processing payment")
-            throw TerminalPaymentException(errorMapper.mapException(e))
+            throw e
         }
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(dispatcher)
 }
-
-class TerminalPaymentException(val errorReason: ErrorReason) : Exception("Error processing payment")

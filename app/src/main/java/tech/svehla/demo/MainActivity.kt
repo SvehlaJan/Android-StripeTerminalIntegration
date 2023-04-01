@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
         if (PermissionHelper.allPermissionsGranted(this) && PermissionHelper.verifyGpsEnabled(this)) {
-            mainVM.initializeStripeSDK(applicationContext = applicationContext)
+            mainVM.initializeStripeSDK(applicationContext)
         } else {
             permissionsAlreadyDenied = true
         }
@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
 
         if (PermissionHelper.allPermissionsGranted(this) && PermissionHelper.verifyGpsEnabled(this)) {
             PermissionHelper.tryEnableBluetooth(this)
-            mainVM.initializeStripeSDK(applicationContext = applicationContext)
+            mainVM.initializeStripeSDK(applicationContext)
         } else if (permissionsAlreadyDenied) {
             PermissionHelper.showPermissionsDeniedDialog(this)
         } else {

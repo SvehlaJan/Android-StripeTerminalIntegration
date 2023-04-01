@@ -1,12 +1,13 @@
 package tech.svehla.demo.data
 
-import com.facebook.stetho.okhttp3.StethoInterceptor
 import com.stripe.stripeterminal.external.models.ConnectionTokenException
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import tech.svehla.demo.api.BackendService
 import tech.svehla.demo.data.model.ServerPaymentIntent
+import timber.log.Timber
 import java.io.IOException
 
 class ApiClient private constructor() {
@@ -25,8 +26,11 @@ class ApiClient private constructor() {
     }
 
 
+    private val logger = HttpLoggingInterceptor { message ->
+        Timber.d(message)
+    }.setLevel(HttpLoggingInterceptor.Level.BODY)
     private val client = OkHttpClient.Builder()
-        .addNetworkInterceptor(StethoInterceptor())
+        .addNetworkInterceptor(logger)
         .build()
     private val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(BACKEND_URL)

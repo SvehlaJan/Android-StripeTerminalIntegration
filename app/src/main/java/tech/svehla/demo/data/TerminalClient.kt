@@ -3,13 +3,18 @@ package tech.svehla.demo.data
 import android.content.Context
 import com.stripe.stripeterminal.Terminal
 import com.stripe.stripeterminal.external.callable.Callback
+import com.stripe.stripeterminal.external.callable.ConnectionTokenCallback
+import com.stripe.stripeterminal.external.callable.ConnectionTokenProvider
 import com.stripe.stripeterminal.external.callable.DiscoveryListener
 import com.stripe.stripeterminal.external.callable.PaymentIntentCallback
 import com.stripe.stripeterminal.external.callable.ReaderCallback
 import com.stripe.stripeterminal.external.callable.TerminalListener
 import com.stripe.stripeterminal.external.models.ConnectionConfiguration
+import com.stripe.stripeterminal.external.models.ConnectionStatus
+import com.stripe.stripeterminal.external.models.ConnectionTokenException
 import com.stripe.stripeterminal.external.models.DiscoveryConfiguration
 import com.stripe.stripeterminal.external.models.PaymentIntent
+import com.stripe.stripeterminal.external.models.PaymentStatus
 import com.stripe.stripeterminal.external.models.Reader
 import com.stripe.stripeterminal.external.models.TerminalException
 import com.stripe.stripeterminal.log.LogLevel
@@ -18,6 +23,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.channels.trySendBlocking
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import tech.svehla.demo.data.model.ServerPaymentIntent
 import timber.log.Timber
@@ -26,18 +33,55 @@ import kotlin.coroutines.suspendCoroutine
 
 class TerminalClient {
 
-    fun initTerminal(applicationContext: Context, onTerminalDisconnected: () -> Unit) {
-        Terminal.initTerminal(applicationContext, LogLevel.VERBOSE, TokenProvider(), object : TerminalListener {
+    private val _connectionStatus: MutableStateFlow<ConnectionStatus> = MutableStateFlow(ConnectionStatus.NOT_CONNECTED)
+    val connectionStatus: StateFlow<ConnectionStatus> = _connectionStatus
+    private val _connectedReader: MutableStateFlow<Reader?> = MutableStateFlow(null)
+    val connectedReader: StateFlow<Reader?> = _connectedReader
+    private val _paymentStatus: MutableStateFlow<PaymentStatus> = MutableStateFlow(PaymentStatus.NOT_READY)
+    val paymentStatus: StateFlow<PaymentStatus> = _paymentStatus
+
+    suspend fun initTerminal(applicationContext: Context) = suspendCoroutine<Unit> { continuation ->
+        if (Terminal.isInitialized()) {
+            Timber.d("Terminal already initialized")
+            continuation.resumeWith(Result.success(Unit))
+            return@suspendCoroutine
+        }
+
+        val terminalListener = object : TerminalListener {
             override fun onUnexpectedReaderDisconnect(reader: Reader) {
                 Timber.d("Reader disconnected unexpectedly: ${reader.serialNumber}")
-                onTerminalDisconnected()
+                _connectedReader.value = null
             }
-        })
+
+            override fun onConnectionStatusChange(status: ConnectionStatus) {
+                Timber.d("Connection status changed: $status")
+                _connectionStatus.value = status
+                super.onConnectionStatusChange(status)
+            }
+
+            override fun onPaymentStatusChange(status: PaymentStatus) {
+                Timber.d("Payment status changed: $status")
+                _paymentStatus.value = status
+                super.onPaymentStatusChange(status)
+            }
+        }
+
+        val tokenProvider = object : ConnectionTokenProvider {
+            override fun fetchConnectionToken(callback: ConnectionTokenCallback) {
+                try {
+                    val token = ApiClient.getInstance().createConnectionToken()
+                    Timber.d("Connection token : $token")
+                    callback.onSuccess(token)
+                    continuation.resumeWith(Result.success(Unit))
+                } catch (e: ConnectionTokenException) {
+                    callback.onFailure(e)
+                    continuation.resumeWithException(e)
+                }
+            }
+        }
+
+        Terminal.initTerminal(applicationContext, LogLevel.VERBOSE, tokenProvider, terminalListener)
     }
-
-    fun isInitialized(): Boolean = Terminal.isInitialized()
-
-    fun getConnectedReader(): Reader? = Terminal.getInstance().connectedReader
 
     fun discoverReaders(discoveryConfig: DiscoveryConfiguration) = callbackFlow<List<Reader>> {
         val discoveryCallback = object : Callback {
@@ -82,11 +126,13 @@ class TerminalClient {
         val readerCallback = object : ReaderCallback {
             override fun onSuccess(reader: Reader) {
                 Timber.d("Connected to reader")
+                _connectedReader.value = reader
                 continuation.resumeWith(Result.success(Unit))
             }
 
             override fun onFailure(e: TerminalException) {
                 Timber.e(e, "Failed to connect to reader")
+                _connectedReader.value = null
                 continuation.resumeWithException(e)
             }
         }
@@ -95,6 +141,7 @@ class TerminalClient {
             Terminal.getInstance().connectInternetReader(reader, connectionConfig, readerCallback)
         } catch (e: TerminalException) {
             Timber.e(e, "Failed to connect to reader")
+            _connectedReader.value = null
             continuation.resumeWithException(e)
         }
     }
